@@ -1,11 +1,33 @@
 
 abstract type AbstractEvent{T,U} end
 
+
+"""
+    Event{T,U} <: AbstractEvent{T,U}
+
+Wraps a timestamp and value pair, of arbitrary type.
+
+# Constructor
+    Event(timestamp, value)
+"""
 struct Event{T,U} <: AbstractEvent{T,U}
     timestamp::T
     value::U
 end
 
+Event(;timestamp, value) = Event(timestamp, value)
+
+"""
+    TaggedEvent{T,U,V} <: AbstractEvent{U,V}
+
+Wraps a tag, timestamp and value triplet, of arbitrary type.
+
+# Constructor
+    TaggedEvent(tag, timestamp, value)
+    TaggedEvent(tag, event::Event)
+
+See `Event`.
+"""
 struct TaggedEvent{T,U,V} <: AbstractEvent{U,V}
     tag::T
     timestamp::U

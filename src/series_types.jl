@@ -2,55 +2,67 @@
 abstract type ConstructionFlag end
 struct TrustInput <: ConstructionFlag end
 
+"""
+    EventSeries(timestamps, values; drop_repeated=true, keep_end=true)
+
+EventSeries holds a vector of values toghether with its corresponding timestamps.
+
+# Constructors
+    EventSeries(timestamps::U, values::W, ::TrustInput)
+    EventSeries(timestamps, values; drop_repeated=true, keep_end=true)
+
+Both constructors assumes that  both `timestamps` and `values` are
+`AbstractVector`s.
+
+The second constructor, without the `TrustInput` argument, checks that:
+    - `timestamps` and `values` are of equal length
+    - `timestamps` must be sorted
+
+Otherwise an `AssertionError` is thrown.
+
+# Arguments
+    - If `drop_repeated` is true (default) all repeated values in values,
+      and corresponding timestamps, are removed before construction.
+    - If `keep_end` is true (default), the last value in values (with its
+      corresponding timestamp) is kept regardless of whether it equals the
+      previous value. Keep_end will only be considered if `drop_repeated`
+      is true.
+
+"""
 struct EventSeries{T, U, V, W} <: AbstractVector{Tuple{T, V}}
     timestamps::U
     values::W
     function EventSeries(
-        ts::U,
-        vals::W,
+        timestamps::U,
+        values::W,
         ::TrustInput
         ) where {T, U<:AbstractVector{T}, V,  W<:AbstractVector{V}}
 
-        new{T, U, V, W}(ts, vals)
+        new{T, U, V, W}(timestamps, values)
     end
 end
 
-"""
-    EventSeries(timestamps, values; drop_repeated=true, keep_end=true)
 
-Creates an EventSeries based on a abstract vector of timestamps and one of values.
-If drop_repeated is true (default) all repeated values in values, and corresponding
-timestamps, are removed before construction. If keep_end is true (default), the last
-value in values (with its corresponding timestamp)is kept regardless of whether it
-equals the previous value. keep_end will only be considered if drop_repeated is true.
-
-The constructor will throw an error if the any of the following conditions does
-not hold:
-    - timestamps and values must be of equal length
-    - timestamps must be sorted
-"""
 function EventSeries(timestamps, values; drop_repeated=true, keep_end=true)
     @assert issorted(timestamps)
     @assert length(timestamps) == length(values)
     if drop_repeated
         select = [true; [a!=b for (a,b) in neighbors(values)]]
         keep_end && (select[end] = true)
-        timestamps = timestamps[select]
-        values = values[select]
+        timestamps, values = all(select) ? (timestamps, values) : (timestamps[select],  values[select])
     end
-    EventSeries(timestamps, vl, TrustInput())
+    EventSeries(timestamps, values, TrustInput())
 end
 
 Base.size(ts::EventSeries) = size(ts.timestamps)
-Base.getindex(ts::EventSeries, i::Number) = (timestamp=ts.timestamps[i], value=ts.values[i])
+Base.getindex(ts::EventSeries, i::Number) = Event(timestamp=ts.timestamps[i], value=ts.values[i])
 Base.getindex(ts::EventSeries, I) = EventSeries(ts.timestamps[I], ts.values[I])
 Base.IndexStyle(ts::EventSeries) = IndexStyle(ts.timestamps)
-Base.size(ts::EventSeries) = size(ts.timestamps)
 
-function Base.push!(ts::EventSeries, (time, value))
-    isempty(ts.timestamps) || @assert last(ts.timestamps) <= time
-    push!(ts.timestamps, time)
-    push!(ts.values, value)
+function Base.push!(ts::EventSeries, e::Event)
+    isempty(ts.timestamps) || @assert last(ts.timestamps) <= e.timestamp
+    push!(ts.timestamps, e.timestamp)
+    push!(ts.values, e.value)
 end
 
 function Base.append!(ts1::EventSeries, ts2::EventSeries)
