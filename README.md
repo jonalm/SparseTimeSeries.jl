@@ -3,11 +3,17 @@
 [![Build Status](https://api.travis-ci.com/jonalm/SparseTimeSeries.jl.svg?branch=master)](https://travis-ci.com/jonalm/SparseTimeSeries.jl)
 [![Codecov](https://codecov.io/gh/jonalm/SparseTimeSeries.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/jonalm/SparseTimeSeries.jl)
 
-This package provides some functionality to handle sparse time series, i.e. series with either {tag, timestamp, value} triplets or {timestamp, value} pairs which typically represents state changes in an arbitrary system. The (potentially tagged) value is considered to be "valid" in the time interval from the recorded timestamp until a new value (with the same tag) is present. In other words, "Forward fill" is the natural imputation strategy.
+This package provides some functionality to handle sparse time series, i.e. series with either {`tag, timestamp, value`} triplets or {`timestamp, value`} pairs which typically represents state changes in an arbitrary system. The (potentially tagged) value is considered to be _valid_ in the time interval from the recorded timestamp until a new value (with the same tag) is present. In other words, _Forward fill_ is the natural imputation strategy.
 
 If you are looking for general time series functionality, check out the much more mature
 [TimeSeries.jl](https://github.com/JuliaStats/TimeSeries.jl) package first.
 
+## Note
+
+The package supports
+ - `value` of arbitrary type
+ - any `timestamp` which can be sorted
+ - `tag` of `Symbol` type
 
 ## Example
 
@@ -50,7 +56,7 @@ julia> tagged_events(y) # sorts all events according to time
 
  julia> fill_forward_value(y, 5.0)
  (Char = 'C', Int = 123, Rand = 34)
- 
+
 julia> EventSeries(y) # creates an EventSeries where each value is a filled forward named tuple with values for each tag
 9-element EventSeries{Float64,Array{Float64,1},NamedTuple{(:Char, :Int, :Rand),T} where T<:Tuple,Array{NamedTuple{(:Char, :Int, :Rand),T} where T<:Tuple,1}}:
  {timest.: 0.0, value: (Char = 'A', Int = nothing, Rand = 53)}
