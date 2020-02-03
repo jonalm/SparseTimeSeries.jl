@@ -48,7 +48,21 @@ end
     # Equal times works
     @test EventSeries(ones(4), values_).timestamps == ones(4)
 
+    v = ['A','A','A','B','C','C']
+    t = 1:length(v)
+    y = EventSeries(t,v)
+    @test y.values == ['A', 'B', 'C', 'C']
+
+    y = EventSeries(t, v, keep_end=false)
+    @test y.values == ['A', 'B', 'C']
+
+    y = EventSeries(t, v, drop_repeated=false)
+    @test y.values == ['A','A','A','B','C','C']
+
+    y = EventSeries(t, v, drop_repeated=false, keep_end=false)
+    @test y.values == ['A','A','A','B','C','C']
 end
+
 
 @testset "push!, append! and getindex, to EventSeries" begin
     values_ = [:a, 1.0, "hello", 2]
@@ -104,5 +118,39 @@ end
     @test fill_forward_value(ts, 5.123) == 2
     @test fill_forward_value(ts, 2) == 1.0
     @test fill_forward_value(ts, 2.5) == 1.0
+end
 
+@testset  "TaggedEventSeries" begin
+    l1 = 'A':'C'
+    l2 = 'a':'c'
+    t = 1:length(l1)
+    y1 = EventSeries(t, l1)
+    y2 = EventSeries(t .+ 0.5, l2)
+    y = TaggedEventSeries()
+    y[:capital] = y1
+    y[:small] = y2
+    @test value.(tagged_events(y)) == ['A', 'a', 'B', 'b','C','c']
+
+    @test value.(EventSeries(y)) == [
+    (capital='A', small=nothing),
+    (capital='A', small='a'),
+    (capital='B', small='a'),
+    (capital='B', small='b'),
+    (capital='C', small='b'),
+    (capital='C', small='c'),
+    ]
+
+    ff = fill_forward_event(y, 2)
+    @test ff.capital == Event(2, 'B')
+    @test ff.small == Event(1.5, 'a')
+
+
+    ff = fill_forward_value(y, 2)
+    @test ff.capital ==  'B'
+    @test ff.small ==  'a'
+
+    @test issorted(SparseTimeSeries.timestamps(y))
+    tidx = collect(SparseTimeSeries.sorted_tag_idx(y))
+    @test length(tidx) == length(y)
+    @test length(y) == 3+3
 end

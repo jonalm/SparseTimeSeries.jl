@@ -31,10 +31,10 @@ Wraps a tag, timestamp and value triplet, of arbitrary type.
 
 See `Event`.
 """
-struct TaggedEvent{T,U,V} <: AbstractEvent{U,V}
-    tag::T
-    timestamp::U
-    value::V
+struct TaggedEvent{T,U} <: AbstractEvent{T,U}
+    tag::Symbol
+    timestamp::T
+    value::U
 end
 
 TaggedEvent(tag, e::Event) = TaggedEvent(tag, e.timestamp, e.value)
@@ -48,5 +48,5 @@ Event(e::TaggedEvent) =  Event(e.timestamp, e.value)
 @inline value(e::AbstractEvent) = e.value
 @inline value(e::Nothing) = nothing
 
-Base.show(io::IO, e::Event) = print(io, "timestamp: $(e.timestamp), value: $(e.value)")
-Base.show(io::IO, e::TaggedEvent) = print(io, "tag: $(e.tag), timestamp: $(e.timestamp), value: $(e.value)")
+Base.show(io::IO, e::Event) = print(io, "{timest.: $(e.timestamp), value: $(e.value)}")
+Base.show(io::IO, e::TaggedEvent) = print(io, "{tag: $(e.tag), timest.: $(e.timestamp), value: $(e.value)}")

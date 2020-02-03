@@ -89,6 +89,9 @@ struct TaggedEventSeries
 end
 TaggedEventSeries() = TaggedEventSeries(Dict{Symbol, EventSeries}())
 
+Base.length(tts::TaggedEventSeries) = sum(length(v) for v in values(tts.data))
+Base.size(tts::TaggedEventSeries) = (length(tts),)
+
 Base.getindex(tts::TaggedEventSeries, args...) = getindex(tts.data, args...)
 Base.setindex!(tts::TaggedEventSeries, args...) = setindex!(tts.data, args...)
 
@@ -103,7 +106,7 @@ end
 function EventSeries(tts::TaggedEventSeries)
     timestamps_ = timestamps(tts) |> collect
     values_ = fill_forward_value.(Ref(tts), timestamps_)
-    EventSeries(timestamps_, values_, TrustInput())
+    EventSeries(timestamps_, values_)
 end
 
 """
@@ -163,7 +166,7 @@ function fill_forward_event(ts::EventSeries, time)
     end
 end
 fill_forward_event(tts::TaggedEventSeries, time) = _fill_forward_event(tts, time, sort(collect(keys(tts.data))))
-_fill_forward_event(tts::TaggedEventSeries, time, skeys) = NamedTuple{Tuple(skeys)}(Tuple(_fill_forward_event(tts[tag], time) for tag in skeys))
+_fill_forward_event(tts::TaggedEventSeries, time, skeys) = NamedTuple{Tuple(skeys)}(Tuple(fill_forward_event(tts[tag], time) for tag in skeys))
 
 
 """
