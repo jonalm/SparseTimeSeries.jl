@@ -23,6 +23,9 @@ end
     @test SparseTimeSeries.tag(te) == :a
     @test SparseTimeSeries.tag(te_) == :a
     @test SparseTimeSeries.tag(e_) == nothing
+    @test SparseTimeSeries.tag(nothing) == nothing
+    @test SparseTimeSeries.timestamp(nothing) == nothing
+
 end
 
 
