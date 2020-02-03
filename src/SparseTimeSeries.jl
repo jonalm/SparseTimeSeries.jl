@@ -5,8 +5,10 @@ export
     EventSeries,
     TaggedEvent,
     TaggedEventSeries,
-    fill_forward,
-    events
+    fill_forward_event,
+    fill_forward_value,
+    tagged_events_itr,
+    tagged_events
 
 include("helpers.jl")
 include("event_types.jl")

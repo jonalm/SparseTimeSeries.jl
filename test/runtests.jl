@@ -1,6 +1,12 @@
 using SparseTimeSeries
 using Test
 
+@testset "test helpers" begin
+    @test SparseTimeSeries.neighbors(1:3) |> collect == [(1,2), (2,3)]
+    @test SparseTimeSeries.neighbors(['A','B','C']) |> collect == [('A','B'), ('B','C')]
+end
+
+
 @testset "constructing EventSeries" begin
     values_ = [:a, 1.0, "hello", 2]
     time_ = [1, 2, 3, 4]
@@ -64,10 +70,18 @@ end
     time_ = [1, 2, 3, 4]
     ts = EventSeries(copy(time_), values_)
 
-    @test fill_forward(ts, 0.9) == nothing
-    @test fill_forward(ts, 1) == Event(timestamp=1, value=:a)
-    @test fill_forward(ts, 4) == Event(timestamp=4, value=2)
-    @test fill_forward(ts, 5.123) == Event(timestamp=4, value=2)
-    @test fill_forward(ts, 2) == Event(timestamp=2, value=1.0)
-    @test fill_forward(ts, 2.5) == Event(timestamp=2, value=1.0)
+    @test fill_forward_event(ts, 0.9) == nothing
+    @test fill_forward_event(ts, 1) == Event(timestamp=1, value=:a)
+    @test fill_forward_event(ts, 4) == Event(timestamp=4, value=2)
+    @test fill_forward_event(ts, 5.123) == Event(timestamp=4, value=2)
+    @test fill_forward_event(ts, 2) == Event(timestamp=2, value=1.0)
+    @test fill_forward_event(ts, 2.5) == Event(timestamp=2, value=1.0)
+
+    @test fill_forward_value(ts, 0.9) == nothing
+    @test fill_forward_value(ts, 1) == :a
+    @test fill_forward_value(ts, 4) == 2
+    @test fill_forward_value(ts, 5.123) == 2
+    @test fill_forward_value(ts, 2) == 1.0
+    @test fill_forward_value(ts, 2.5) == 1.0
+
 end

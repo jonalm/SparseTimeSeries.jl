@@ -3,31 +3,26 @@ abstract type ConstructionFlag end
 struct TrustInput <: ConstructionFlag end
 
 """
-    EventSeries(timestamps, values; drop_repeated=true, keep_end=true)
+`EventSeries` holds a vector of `values` toghether with its corresponding
+`timestamps`. `EventSeries` is subtype `AbstractVector`, and of both `timestamps`
+and `values` must be subtypes of `AbstractVector`.
 
-EventSeries holds a vector of values toghether with its corresponding timestamps.
+EventSeries(timestamps::U, values::W, ::TrustInput)
 
-# Constructors
-    EventSeries(timestamps::U, values::W, ::TrustInput)
-    EventSeries(timestamps, values; drop_repeated=true, keep_end=true)
+    - Assumes that `timestamps` and `values` are of equal
+      length, and that `timestamps` is sorted.
 
-Both constructors assumes that  both `timestamps` and `values` are
-`AbstractVector`s.
+EventSeries(timestamps, values; drop_repeated=true, keep_end=true)
 
-The second constructor, without the `TrustInput` argument, checks that:
-    - `timestamps` and `values` are of equal length
-    - `timestamps` must be sorted
-
-Otherwise an `AssertionError` is thrown.
-
-# Arguments
+    - Checks that `timestamps` and `values` are of equal length
+    - Checks that `timestamps` is sorted
+    - Throws `AssertionError` if any of the above mentioned checks failss.
     - If `drop_repeated` is true (default) all repeated values in values,
       and corresponding timestamps, are removed before construction.
     - If `keep_end` is true (default), the last value in values (with its
       corresponding timestamp) is kept regardless of whether it equals the
       previous value. Keep_end will only be considered if `drop_repeated`
       is true.
-
 """
 struct EventSeries{T, U, V, W} <: AbstractVector{Tuple{T, V}}
     timestamps::U
@@ -41,6 +36,13 @@ struct EventSeries{T, U, V, W} <: AbstractVector{Tuple{T, V}}
         new{T, U, V, W}(timestamps, values)
     end
 end
+
+"""
+    timestamptype(y::EventSeries)
+
+Returns time type of the EventSeries, which equals `eltype(y.timestamps)`.
+"""
+timestamptype(::EventSeries{T}) where {T} = T
 
 
 function EventSeries(timestamps, values; drop_repeated=true, keep_end=true)
@@ -71,30 +73,46 @@ function Base.append!(ts1::EventSeries, ts2::EventSeries)
     append!(ts1.values, ts2.values)
 end
 
+"""
+`TaggedEventSeries{T}` holds a mapping from `tag::T` to an `eventseries::EventSeries`.
 
-struct TaggedEventSeries{S, T, U, V}
-    data::V
-    function TaggedEventSeries(
-        data::V
-        ) where {S, T, U<:AbstractVector{T}, V<:Dict{S, EventSeries{T, U}}}
-        new{S, T, U, V}(data)
-    end
+Assumes that the `timestamptype(eventseries)` can be compared betweeen types.
+
+# Constructors
+
+TaggedEventSeries(d::Dict{Symbol, EventSeries})
+TaggedEventSeries()
+
+"""
+struct TaggedEventSeries
+    data::Dict{Symbol, EventSeries}
 end
+TaggedEventSeries() = TaggedEventSeries(Dict{Symbol, EventSeries}())
 
 Base.getindex(tts::TaggedEventSeries, args...) = getindex(tts.data, args...)
 Base.setindex!(tts::TaggedEventSeries, args...) = setindex!(tts.data, args...)
 
-function Base.push!(tts::TaggedEventSeries, e::Event)
+function Base.push!(tts::TaggedEventSeries, e::TaggedEvent)
     if e.tag in keys(tts.data)
-        push!(tts[e.tag], (e.timestamp, e.value))
+        push!(tts[e.tag], Event(e.timestamp, e.value))
     else
         tts[e.tag] = EventSeries([e.timestamp], [e.value])
     end
 end
 
+function EventSeries(tts::TaggedEventSeries)
+    timestamps_ = timestamps(tts) |> collect
+    values_ = fill_forward_value.(Ref(tts), timestamps_)
+    EventSeries(timestamps_, values_, TrustInput())
+end
 
+"""
+    sorted_tag_idx(tts::TaggedEventSeries)
 
-function sorted_indices(tts::TaggedEventSeries)
+Returns a time sorted iterator over all (tag, index_in_event_series) pairs in the
+input TaggedEventSeries.
+"""
+function sorted_tag_idx(tts::TaggedEventSeries)
     Channel() do c
         state = Dict(t=>(tts[t].timestamps[1], 1, length(tts[t])) for t in keys(tts.data))
         while !isempty(state)
@@ -112,29 +130,28 @@ end
 
 
 """
-    event_itr(tts::TaggedEventSeries)
+    tagged_events_itr(tts::TaggedEventSeries)
 
-Returns a time sorted iterator over all TaggedEvents in the tts TaggedEventSeries.
+Returns a time sorted iterator over all TaggedEvents in the input TaggedEventSeries.
 
-see also events(tts::TaggedEventSeries)
+see also `tagged_events(tts::TaggedEventSeries)`.
 """
-event_itr(tts::TaggedEventSeries) = (Event(tag, tts[tag][idx]...) for (tag, idx) in sorted_indices(tts))
-event_times(tts::TaggedEventSeries) = (tts[tag].timestamps[idx] for (tag, idx) in sorted_indices(tts))
+tagged_events_itr(tts::TaggedEventSeries) = (TaggedEvent(tag, tts[tag][idx]) for (tag, idx) in sorted_tag_idx(tts))
+timestamps(tts::TaggedEventSeries) = (tts[tag].timestamps[idx] for (tag, idx) in sorted_tag_idx(tts))
 
 """
-    events(tts::TaggedEventSeries)
+    tagged_events(tts::TaggedEventSeries)
 
-Returns a time sorted vector of all TaggedEvents in the tts TaggedEventSeries.
+Returns a time sorted vector of all TaggedEvents in the input TaggedEventSeries.
 
-see also events_itr(tts::TaggedEventSeries)
+see also tagged_events_itr(tts::TaggedEventSeries)
 """
-function events(tts::TaggedEventSeries)
-    sort(vcat([[Event(tag, e...) for e in ts] for (tag, ts) in tts.data]...), by=x->x.timestamp)
+function tagged_events(tts::TaggedEventSeries)
+    sort(vcat([[TaggedEvent(tag, e) for e in ts] for (tag, ts) in tts.data]...), by=x->x.timestamp)
 end
 
 
-
-function fill_forward(ts::EventSeries, time)
+function fill_forward_event(ts::EventSeries, time)
     t0, t1 =  first(ts.timestamps), last(ts.timestamps)
     if time <= t0
         return time < t0 ? nothing : ts[1]
@@ -145,22 +162,40 @@ function fill_forward(ts::EventSeries, time)
         return time == ts.timestamps[idx] ? ts[idx] : ts[idx-1]
     end
 end
-
-fill_forward(tts::TaggedEventSeries, time) = fill_forward(tts, time, sort(collect(keys(tts.data))))
-fill_forward(tts::TaggedEventSeries, time, skeys) = Tuple(tag=>fill_forward(tts[tag], time) for tag in skeys)
+fill_forward_event(tts::TaggedEventSeries, time) = _fill_forward_event(tts, time, sort(collect(keys(tts.data))))
+_fill_forward_event(tts::TaggedEventSeries, time, skeys) = NamedTuple{Tuple(skeys)}(Tuple(_fill_forward_event(tts[tag], time) for tag in skeys))
 
 
 """
-    fill_forward(ts, time)
-    fill_forward(ts, time)
+    fill_forward_event(ts::EventSeries, time)
 
-# Argument
+Returns the prior (with respect to `time`) `Event` in the input `EventSeries`).
 
-Returns a Tuple of TaggedEvent. One for each tag and corresponding fill_forward
-Event from each EventSeries contained in the tss TaggedEventSeries.
+    fill_forward_event(ts::TaggedEventSeries, time)
 
-The Tuple is sorted by tag value.
+Returns a named tuple with the prior (with respect to `time`) `Event`s for each
+tag in the input `TaggedEventSeries`.
 
-Returns the most recent Event in the ts EventSeries, with respect to time. If time
-is before the first timestamp in ts, then nothing is returned.
+If `time` is before the first timestamp in `EventSeries` / `TaggedEventSeries`,
+then `nothing` is returned.
 """
+fill_forward_event
+
+fill_forward_value(ts::EventSeries, time) = value(fill_forward_event(ts, time))
+fill_forward_value(tts::TaggedEventSeries, time) = _fill_forward_value(tts, time, sort(collect(keys(tts.data))))
+_fill_forward_value(tts::TaggedEventSeries, time, skeys) = NamedTuple{Tuple(skeys)}(Tuple(fill_forward_value(tts[tag], time) for tag in skeys))
+
+"""
+    fill_forward_value(ts::EventSeries, time)
+
+Returns the prior (with respect to `time`) `value` in the input `EventSeries`).
+
+    fill_forward_value(ts::TaggedEventSeries, time)
+
+Returns a named tuple with the prior (with respect to `time`) `values`s for each
+tag in the input `TaggedEventSeries`.
+
+If `time` is before the first timestamp in `EventSeries` / `TaggedEventSeries`,
+then `nothing` is returned.
+"""
+fill_forward_value

@@ -9,6 +9,9 @@ Wraps a timestamp and value pair, of arbitrary type.
 
 # Constructor
     Event(timestamp, value)
+    Event(e::TaggedEvent)
+
+see `TaggedEvent`.
 """
 struct Event{T,U} <: AbstractEvent{T,U}
     timestamp::T
@@ -35,11 +38,15 @@ struct TaggedEvent{T,U,V} <: AbstractEvent{U,V}
 end
 
 TaggedEvent(tag, e::Event) = TaggedEvent(tag, e.timestamp, e.value)
+Event(e::TaggedEvent) =  Event(e.timestamp, e.value)
 
 @inline tag(e::TaggedEvent) = e.tag
 @inline tag(e::Event) = nothing
+@inline tag(e::Nothing) = nothing
 @inline timestamp(e::AbstractEvent) = e.timestamp
+@inline timestamp(e::Nothing) = nothing
 @inline value(e::AbstractEvent) = e.value
+@inline value(e::Nothing) = nothing
 
 Base.show(io::IO, e::Event) = print(io, "timestamp: $(e.timestamp), value: $(e.value)")
 Base.show(io::IO, e::TaggedEvent) = print(io, "tag: $(e.tag), timestamp: $(e.timestamp), value: $(e.value)")
