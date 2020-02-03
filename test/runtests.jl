@@ -6,6 +6,26 @@ using Test
     @test SparseTimeSeries.neighbors(['A','B','C']) |> collect == [('A','B'), ('B','C')]
 end
 
+@testset "test Event, TaggedEventConstructor" begin
+    e = Event(1,2)
+    @test SparseTimeSeries.value(e) == 2
+    @test SparseTimeSeries.timestamp(e) == 1
+    te = TaggedEvent(:a, 1, 2)
+    te_ = TaggedEvent(:a, e)
+    e_ = Event(te_)
+
+    for x in [te,te_, e_]
+        @test SparseTimeSeries.value(e) == SparseTimeSeries.value(x)
+        @test SparseTimeSeries.timestamp(e) == SparseTimeSeries.timestamp(x)
+    end
+
+    @test SparseTimeSeries.tag(e) == nothing
+    @test SparseTimeSeries.tag(te) == :a
+    @test SparseTimeSeries.tag(te_) == :a
+    @test SparseTimeSeries.tag(e_) == nothing
+end
+
+
 
 @testset "constructing EventSeries" begin
     values_ = [:a, 1.0, "hello", 2]
@@ -35,6 +55,7 @@ end
     time_ = [1, 2, 3, 4]
 
     ts = EventSeries(copy(time_), values_)
+    @test SparseTimeSeries.timestamptype(ts) == Int
     @test ts[3] == Event(timestamp=3, value="hello")
 
     # decreasing timestep
