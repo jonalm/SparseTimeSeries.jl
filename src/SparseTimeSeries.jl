@@ -14,7 +14,6 @@ export
 
 include("helpers.jl")
 include("event_types.jl")
-
 include("series_types.jl")
 
 end # module

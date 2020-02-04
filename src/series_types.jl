@@ -2,6 +2,8 @@
 abstract type ConstructionFlag end
 struct TrustInput <: ConstructionFlag end
 
+
+
 """
 `EventSeries` holds a vector of `values` toghether with its corresponding
 `timestamps`. `EventSeries` is subtype `AbstractVector`, and of both `timestamps`
@@ -37,14 +39,6 @@ struct EventSeries{T, U, V, W} <: AbstractVector{Tuple{T, V}}
     end
 end
 
-"""
-    timestamptype(y::EventSeries)
-
-Returns time type of the EventSeries, which equals `eltype(y.timestamps)`.
-"""
-timestamptype(::EventSeries{T}) where {T} = T
-
-
 function EventSeries(timestamps, values; drop_repeated=true, keep_end=true)
     @assert issorted(timestamps)
     @assert length(timestamps) == length(values)
@@ -72,6 +66,15 @@ function Base.append!(ts1::EventSeries, ts2::EventSeries)
     append!(ts1.timestamps, ts2.timestamps)
     append!(ts1.values, ts2.values)
 end
+
+"""
+    timestamptype(y::EventSeries)
+
+Returns time type of the EventSeries, which equals `eltype(y.timestamps)`.
+"""
+timestamptype(::EventSeries{T}) where {T} = T
+
+
 
 """
 `TaggedEventSeries{T}` holds a mapping from `tag::T` to an `eventseries::EventSeries`.
@@ -131,7 +134,6 @@ function sorted_tag_idx(tts::TaggedEventSeries)
     end
 end
 
-
 """
     tagged_events_itr(tts::TaggedEventSeries)
 
@@ -153,7 +155,6 @@ function tagged_events(tts::TaggedEventSeries)
     sort(vcat([[TaggedEvent(tag, e) for e in ts] for (tag, ts) in tts.data]...), by=x->x.timestamp)
 end
 
-
 function fill_forward_event(ts::EventSeries, time)
     t0, t1 =  first(ts.timestamps), last(ts.timestamps)
     if time <= t0
@@ -167,7 +168,6 @@ function fill_forward_event(ts::EventSeries, time)
 end
 fill_forward_event(tts::TaggedEventSeries, time) = _fill_forward_event(tts, time, sort(collect(keys(tts.data))))
 _fill_forward_event(tts::TaggedEventSeries, time, skeys) = NamedTuple{Tuple(skeys)}(Tuple(fill_forward_event(tts[tag], time) for tag in skeys))
-
 
 """
     fill_forward_event(ts::EventSeries, time)
