@@ -157,3 +157,17 @@ end
     @test length(tidx) == length(y)
     @test length(y) == 3+3
 end
+
+@testset  "TaggedEventSeries construct by kwargs" begin
+    l1 = 'A':'C'
+    l2 = 'a':'c'
+    t = 1:length(l1)
+    y1 = EventSeries(t, l1)
+    y2 = EventSeries(t .+ 0.5, l2)
+    y = TaggedEventSeries(capital=y1, small=y2)
+
+    @test issorted(SparseTimeSeries.timestamps(y))
+    tidx = collect(SparseTimeSeries.sorted_tag_idx(y))
+    @test length(tidx) == length(y)
+    @test length(y) == 3+3
+end
