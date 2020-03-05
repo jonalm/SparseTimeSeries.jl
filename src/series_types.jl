@@ -90,7 +90,13 @@ TaggedEventSeries()
 struct TaggedEventSeries
     data::Dict{Symbol, EventSeries}
 end
-TaggedEventSeries() = TaggedEventSeries(Dict{Symbol, EventSeries}())
+function TaggedEventSeries(;kwargs...)
+    tes = TaggedEventSeries(Dict{Symbol, EventSeries}())
+    for (k,v) in kwargs
+        tes[k] = v
+    end
+    tes
+end
 
 Base.length(tts::TaggedEventSeries) = sum(length(v) for v in values(tts.data))
 Base.size(tts::TaggedEventSeries) = (length(tts),)
