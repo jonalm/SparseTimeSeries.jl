@@ -8,8 +8,8 @@ end
     e = Event(1,2)
     @test SparseTimeSeries.value(e) == 2
     @test SparseTimeSeries.timestamp(e) == 1
-    te = TaggedEvent(:a, 1, 2)
-    te_ = TaggedEvent(:a, e)
+    te = SparseTimeSeries.TaggedEvent(:a, 1, 2)
+    te_ = SparseTimeSeries.TaggedEvent(:a, e)
     e_ = Event(te_)
 
     for x in [te,te_, e_]
@@ -125,10 +125,10 @@ end
     t = 1:length(l1)
     y1 = EventSeries(t, l1)
     y2 = EventSeries(t .+ 0.5, l2)
-    y = TaggedEventSeries()
+    y = SparseTimeSeries.TaggedEventSeries()
     y[:capital] = y1
     y[:small] = y2
-    @test value.(tagged_events(y)) == ['A', 'a', 'B', 'b','C','c']
+    @test value.(SparseTimeSeries.tagged_events(y)) == ['A', 'a', 'B', 'b','C','c']
 
     @test value.(EventSeries(y)) == [
     (capital='A', small=nothing),
@@ -160,7 +160,7 @@ end
     t = 1:length(l1)
     y1 = EventSeries(t, l1)
     y2 = EventSeries(t .+ 0.5, l2)
-    y = TaggedEventSeries(capital=y1, small=y2)
+    y = SparseTimeSeries.TaggedEventSeries(capital=y1, small=y2)
 
     @test issorted(SparseTimeSeries.timestamps(y))
     tidx = collect(SparseTimeSeries.sorted_tag_idx(y))

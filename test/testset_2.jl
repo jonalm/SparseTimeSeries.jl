@@ -1,35 +1,35 @@
 
-@testset  "prune" begin
+@testset  "select" begin
     values_ = [:a, 1.0, "hello", 2]
     time_ = [0, 2, 3, 5]
 
     ts = EventSeries(time_, values_)
 
-    ts1 = prune(ts, 0, 5)
+    ts1 = select(ts, 0, 5)
     @test ts1.timestamps == time_
     @test ts1.values == values_
 
-    ts2 = prune(ts, 1, 4)
+    ts2 = select(ts, 1, 4)
     @test ts2.timestamps == [1, 2, 3, 4]
     @test ts2.values ==  [:a, 1.0, "hello", "hello"]
 
-    ts3 = prune(ts, 0, 4)
+    ts3 = select(ts, 0, 4)
     @test ts3.timestamps == [0, 2, 3, 4]
     @test ts3.values ==  [:a, 1.0, "hello", "hello"]
 
-    ts4 = prune(ts, 2, 5)
+    ts4 = select(ts, 2, 5)
     @test ts4.timestamps == [2, 3, 5]
     @test ts4.values ==  [1.0, "hello", 2]
 
-    @test_throws AssertionError prune(ts, -1, 4)
-    @test_throws AssertionError prune(ts, 1, 10)
-    @test_throws AssertionError prune(ts, -1, 10)
+    @test_throws AssertionError select(ts, -1, 4)
+    @test_throws AssertionError select(ts, 1, 10)
+    @test_throws AssertionError select(ts, -1, 10)
 
 
     values_ = [:a, :b]
     time_ = [0, 10]
     ts = EventSeries(time_, values_)
-    ts5 = prune(ts, 1,2)
+    ts5 = select(ts, 1,2)
     @test ts5.timestamps == [1,2]
     @test ts5.values ==  [:a, :a]
 end

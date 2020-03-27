@@ -75,14 +75,13 @@ Returns time type of the EventSeries, which equals `eltype(y.timestamps)`.
 timestamptype(::EventSeries{T}) where {T} = T
 
 """
-     prune(y::EventSeries, t1, t2)
+     select(y::EventSeries, t1, t2)
 
-Returns an EventSeries subset containing all events in the timedomain defined by `[t1, t2]`
-(edge times are included) .Events at the boundaries at `(t1, t2)` are set by the `fill_forwarde_value`.
-
+returns an EventSeries which is a subset of the input series, containing the `Event`s
+in the time domain [tstart, tend]. The endpoint values are set by filling forward
 Assumes that the input time domain `[t1, t2]` is contained in the input EventSeries.
 """
-function prune(y::EventSeries, t1, t2)
+function select(y::EventSeries, t1, t2)
     @assert y.timestamps[1] <= t1 < t2 <= y.timestamps[end] "invaid time limits"
     v1 = fill_forward_value(y, t1)
     v2 = fill_forward_value(y, t2)
@@ -93,14 +92,14 @@ end
 """
     align(ys::EventSeries{T}...)
 
-Returns a tuple of EventSeries, corresponding to the input order,
-where all series are pruned to the maximal time domaind shared by
-all input EventSeris
+Returns a tuple of EventSeries containing subsets of the corresponding series input,
+such that the time domain of each output series corresponds to the largest common time
+domain of the input series. See `select`.
 """
 function align(ys::EventSeries{T}...) where T
     tmin = maximum(y.timestamps[1] for y in ys)
     tmax = minimum(y.timestamps[end] for y in ys)
-    Tuple(prune(y, tmin, tmax) for y in ys)
+    Tuple(select(y, tmin, tmax) for y in ys)
 end
 
 """
@@ -246,3 +245,8 @@ If `time` is before the first timestamp in `EventSeries` / `TaggedEventSeries`,
 then `nothing` is returned.
 """
 fill_forward_value
+
+function merge(ps::Pair{Any, EventSeries{T}}...) where {T}
+    @assert length(ess) > 1 "provide 2 or more EventSeries to be merged"
+    EventSeries(TaggedEventSeries(p[1]=p[2] for p in ps))
+end
