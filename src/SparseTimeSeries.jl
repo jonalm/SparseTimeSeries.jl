@@ -10,7 +10,10 @@ export
     tagged_events_itr,
     tagged_events,
     value,
-    timestamp
+    timestamp,
+    prune,
+    align,
+    cumtime
 
 include("helpers.jl")
 include("event_types.jl")

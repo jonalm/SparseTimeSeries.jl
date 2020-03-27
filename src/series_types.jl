@@ -74,7 +74,45 @@ Returns time type of the EventSeries, which equals `eltype(y.timestamps)`.
 """
 timestamptype(::EventSeries{T}) where {T} = T
 
+"""
+     prune(y::EventSeries, t1, t2)
 
+Returns an EventSeries subset containing all events in the timedomain defined by `[t1, t2]`
+(edge times are included) .Events at the boundaries at `(t1, t2)` are set by the `fill_forwarde_value`.
+
+Assumes that the input time domain `[t1, t2]` is contained in the input EventSeries.
+"""
+function prune(y::EventSeries, t1, t2)
+    @assert y.timestamps[1] <= t1 < t2 <= y.timestamps[end] "invaid time limits"
+    v1 = fill_forward_value(y, t1)
+    v2 = fill_forward_value(y, t2)
+    select = [t1 < e.timestamp < t2 for e in y]
+    EventSeries([t1; y.timestamps[select]; t2], [v1; y.values[select]; v2])
+end
+
+"""
+    align(ys::EventSeries{T}...)
+
+Returns a tuple of EventSeries, corresponding to the input order,
+where all series are pruned to the maximal time domaind shared by
+all input EventSeris
+"""
+function align(ys::EventSeries{T}...) where T
+    tmin = maximum(y.timestamps[1] for y in ys)
+    tmax = minimum(y.timestamps[end] for y in ys)
+    Tuple(prune(y, tmin, tmax) for y in ys)
+end
+
+"""
+    cumtime(es::EventSeries{T}, val)
+
+Returns cummulative time of EventSeries where the value equals `val`
+"""
+function cumtime(es::EventSeries{T}, val) where T
+    eventpairs = SparseTimeSeries.neighbors(es)
+    durations = (e2.timestamp-e1.timestamp for (e1,e2) in eventpairs if e1.value==val)
+    isempty(durations) ? zero(T) : sum(durations)
+end
 
 """
 `TaggedEventSeries{T}` holds a mapping from `tag::T` to an `eventseries::EventSeries`.
