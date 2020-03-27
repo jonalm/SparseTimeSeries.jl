@@ -1,7 +1,7 @@
 name = "SparseTimeSeries"
 uuid = "e40787dc-7381-49a9-a10c-5aed17658239"
 authors = ["Jon Alm Eriksen <jon.alm.eriksen@protonmail.com>"]
-version = "0.1.2"
+version = "0.1.1"
 
 [compat]
 julia = "1"
