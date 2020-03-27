@@ -74,44 +74,6 @@ Returns time type of the EventSeries, which equals `eltype(y.timestamps)`.
 """
 timestamptype(::EventSeries{T}) where {T} = T
 
-"""
-     select(y::EventSeries, t1, t2)
-
-returns an EventSeries which is a subset of the input series, containing the `Event`s
-in the time domain [tstart, tend]. The endpoint values are set by filling forward
-Assumes that the input time domain `[t1, t2]` is contained in the input EventSeries.
-"""
-function select(y::EventSeries, t1, t2)
-    @assert y.timestamps[1] <= t1 < t2 <= y.timestamps[end] "invaid time limits"
-    v1 = fill_forward_value(y, t1)
-    v2 = fill_forward_value(y, t2)
-    select = [t1 < e.timestamp < t2 for e in y]
-    EventSeries([t1; y.timestamps[select]; t2], [v1; y.values[select]; v2])
-end
-
-"""
-    align(ys::EventSeries{T}...)
-
-Returns a tuple of EventSeries containing subsets of the corresponding series input,
-such that the time domain of each output series corresponds to the largest common time
-domain of the input series. See `select`.
-"""
-function align(ys::EventSeries{T}...) where T
-    tmin = maximum(y.timestamps[1] for y in ys)
-    tmax = minimum(y.timestamps[end] for y in ys)
-    Tuple(select(y, tmin, tmax) for y in ys)
-end
-
-"""
-    cumtime(es::EventSeries{T}, val)
-
-Returns cummulative time of EventSeries where the value equals `val`
-"""
-function cumtime(es::EventSeries{T}, val) where T
-    eventpairs = SparseTimeSeries.neighbors(es)
-    durations = (e2.timestamp-e1.timestamp for (e1,e2) in eventpairs if e1.value==val)
-    isempty(durations) ? zero(T) : sum(durations)
-end
 
 """
 `TaggedEventSeries{T}` holds a mapping from `tag::T` to an `eventseries::EventSeries`.
@@ -246,7 +208,60 @@ then `nothing` is returned.
 """
 fill_forward_value
 
-function merge(ps::Pair{Any, EventSeries{T}}...) where {T}
-    @assert length(ess) > 1 "provide 2 or more EventSeries to be merged"
-    EventSeries(TaggedEventSeries(p[1]=p[2] for p in ps))
+"""
+     select(y::EventSeries, t1, t2)
+
+returns an EventSeries which is a subset of the input series, containing the `Event`s
+in the time domain [tstart, tend]. The endpoint values are set by filling forward
+Assumes that the input time domain `[t1, t2]` is contained in the input EventSeries.
+"""
+function select(y::EventSeries, t1, t2)
+    @assert y.timestamps[1] <= t1 < t2 <= y.timestamps[end] "invaid time limits"
+    v1 = fill_forward_value(y, t1)
+    v2 = fill_forward_value(y, t2)
+    select = [t1 < e.timestamp < t2 for e in y]
+    EventSeries([t1; y.timestamps[select]; t2], [v1; y.values[select]; v2])
 end
+
+"""
+    align(ys::EventSeries{T}...)
+
+Returns a tuple of EventSeries containing subsets of the corresponding series input,
+such that the time domain of each output series corresponds to the largest common time
+domain of the input series. See `select`.
+"""
+function align(ys::EventSeries{T}...) where T
+    tmin = maximum(y.timestamps[1] for y in ys)
+    tmax = minimum(y.timestamps[end] for y in ys)
+    Tuple(select(y, tmin, tmax) for y in ys)
+end
+
+"""
+    cumtime(es::EventSeries{T}, val)
+
+Returns cummulative time of EventSeries where the value equals `val`
+"""
+function cumtime(es::EventSeries{T}, val) where T
+    eventpairs = SparseTimeSeries.neighbors(es)
+    durations = (e2.timestamp-e1.timestamp for (e1,e2) in eventpairs if e1.value==val)
+    isempty(durations) ? zero(T) : sum(durations)
+end
+
+
+function fuse(;kwargs...)
+    tes = TaggedEventSeries(;kwargs...)
+    EventSeries(tes)
+end
+
+function splice(;kwargs...) where {T}
+    tes = TaggedEventSeries(;kwargs...)
+    taggedevents = tagged_events(tes)
+    EventSeries([e.timestamp for e in taggedevents], [e.tag=>e.value for e in taggedevents])
+end
+
+function Base.filter(f, y::EventSeries)
+    select = [f(e) for e in y]
+    EventSeries(y.timestamps[select], y.values[select])
+end
+
+segments(y::EventSeries) = (Segment(e1.timestamp, e2.timestamp, e1.value) for (e1, e2) in neighbors(y))

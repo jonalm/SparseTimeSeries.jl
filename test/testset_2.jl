@@ -65,3 +65,51 @@ end
     @test cumtime(ts, 1) == 5
     @test cumtime(ts, 2) == 4 # integration stops at last time stamp
 end
+
+@testset  "fuse and splice" begin
+    t1 = [1,3,5]
+    v1 = ['A', 'B', 'C']
+    ts1 = EventSeries(t1, v1)
+
+    t2 = [2,4,6]
+    v2 = ['a', 'b', 'c']
+    ts2 = EventSeries(t2, v2)
+
+    ts3 = fuse(x=ts1, y=ts2)
+    ts4 = splice(x=ts1, y=ts2)
+
+    @test ts3.timestamps == sort([t1; t2])
+    @test ts4.timestamps == sort([t1; t2])
+
+    @test ts3.values == [(x = 'A', y = nothing)
+                         (x = 'A', y = 'a')
+                         (x = 'B', y = 'a')
+                         (x = 'B', y = 'b')
+                         (x = 'C', y = 'b')
+                         (x = 'C', y = 'c')]
+
+    @test ts4.values == [:x => 'A',
+                         :y => 'a',
+                         :x => 'B',
+                         :y => 'b',
+                         :x => 'C',
+                         :y => 'c']
+end
+
+@testset  "segments" begin
+    t = [1, 3, 5]
+    v = ['A', 'B', 'C']
+    ts = EventSeries(t, v)
+    @test collect(segments(ts)) == [Segment(1,3,'A'), Segment(3,5,'B')]
+end
+
+
+@testset  "filter" begin
+    t = [1, 3, 5]
+    v = ['A', 'B', 'C']
+    ts = EventSeries(t, v)
+    ts2 = filter(x->x.value!='C', ts)
+    @test ts2.values == ['A', 'B']
+    @test ts2.timestamps == [1, 3]
+
+end
