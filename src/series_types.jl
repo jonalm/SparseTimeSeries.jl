@@ -29,14 +29,14 @@ EventSeries(timestamps, values; drop_repeated=true, keep_end=true)
 struct EventSeries{T, U, V, W} <: AbstractVector{Tuple{T, V}}
     timestamps::U
     values::W
-    function EventSeries(
-        timestamps::U,
-        values::W,
-        ::TrustInput
-        ) where {T, U<:AbstractVector{T}, V,  W<:AbstractVector{V}}
+end
 
-        new{T, U, V, W}(timestamps, values)
-    end
+function EventSeries(
+    timestamps::U,
+    values::W,
+    ::TrustInput
+    ) where {T, U<:AbstractVector{T}, V,  W<:AbstractVector{V}}
+    EventSeries{T, U, V, W}(timestamps, values)
 end
 
 function EventSeries(timestamps, values; drop_repeated=true, keep_end=true)
