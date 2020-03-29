@@ -100,7 +100,7 @@ end
     t = [1, 3, 5]
     v = ['A', 'B', 'C']
     ts = EventSeries(t, v)
-    @test collect(segments(ts)) == [Segment(1,3,'A'), Segment(3,5,'B')]
+    @test collect(segments(ts)) == [Segment('A', 1,3), Segment('B', 3,5)]
 end
 
 

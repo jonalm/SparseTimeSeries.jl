@@ -264,4 +264,4 @@ function Base.filter(f, y::EventSeries)
     EventSeries(y.timestamps[select], y.values[select])
 end
 
-segments(y::EventSeries) = (Segment(e1.timestamp, e2.timestamp, e1.value) for (e1, e2) in neighbors(y))
+segments(y::EventSeries) = (Segment(e1.value, e1.timestamp, e2.timestamp) for (e1, e2) in neighbors(y))
