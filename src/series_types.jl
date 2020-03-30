@@ -247,6 +247,8 @@ function cumtime(es::EventSeries{T}, val) where T
     isempty(durations) ? zero(T) : sum(durations)
 end
 
+cumtime(es::EventSeries{T}, val, t1, t2) where {T} = cumtime(select(es,t1,t2), val)
+
 
 function fuse(;kwargs...)
     tes = TaggedEventSeries(;kwargs...)
