@@ -4,7 +4,6 @@ struct Segment{T,U}
     tstart::U
     tend::U
 end
-#Segment(value::T, tstart::U, tend::U) where {T, U} = Segment{T,U}(tstart, tend)
 
 @inline value(s::Segment) = s.value
 @inline timestamp(s::Segment) = s.tstart
