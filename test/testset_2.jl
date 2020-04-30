@@ -113,3 +113,14 @@ end
     @test ts2.timestamps == [1, 3]
 
 end
+
+
+@testset "fuse duplicate timestamps" begin
+    t = [1, 3, 5]
+    v1 = ['A', 'B', 'C']
+    v2 = ['a', 'b', 'c']
+    ts1 = EventSeries(t, v1)
+    ts2 = EventSeries(t, v2)
+    ts = fuse(a=ts1, b=ts2)
+    @test length(ts) == length(t)
+end

@@ -147,7 +147,7 @@ Returns a time sorted iterator over all TaggedEvents in the input TaggedEventSer
 see also `tagged_events(tts::TaggedEventSeries)`.
 """
 tagged_events_itr(tts::TaggedEventSeries) = (TaggedEvent(tag, tts[tag][idx]) for (tag, idx) in sorted_tag_idx(tts))
-timestamps(tts::TaggedEventSeries) = (tts[tag].timestamps[idx] for (tag, idx) in sorted_tag_idx(tts))
+timestamps(tts::TaggedEventSeries) = unique(tts[tag].timestamps[idx] for (tag, idx) in sorted_tag_idx(tts))
 
 """
     tagged_events(tts::TaggedEventSeries)
