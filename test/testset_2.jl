@@ -62,8 +62,8 @@ end
     t_ = 1:10 |> collect
     v_ = repeat([1,2], 5)
     ts = EventSeries(t_, v_)
-    @test cumtime(ts, 1) == 5
-    @test cumtime(ts, 2) == 4 # integration stops at last time stamp
+    @test cumtime(ts, val->val==1) == 5
+    @test cumtime(ts, val->val==2) == 4 # integration stops at last time stamp
 end
 
 @testset  "fuse and splice" begin

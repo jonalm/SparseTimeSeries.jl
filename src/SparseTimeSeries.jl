@@ -14,7 +14,9 @@ export
     fuse,
     segments,
     select,
-    splice
+    splice,
+    next,
+    previous
 
 include("helpers.jl")
 include("event_types.jl")

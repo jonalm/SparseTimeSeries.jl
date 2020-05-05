@@ -241,13 +241,13 @@ end
 
 Returns cummulative time of EventSeries where the value equals `val`
 """
-function cumtime(es::EventSeries{T}, val) where T
+function cumtime(es::EventSeries{T}, fun) where T
     eventpairs = SparseTimeSeries.neighbors(es)
-    durations = (e2.timestamp-e1.timestamp for (e1,e2) in eventpairs if e1.value==val)
+    durations = (e2.timestamp-e1.timestamp for (e1,e2) in eventpairs if fun(e1.value))
     isempty(durations) ? zero(T) : sum(durations)
 end
 
-cumtime(es::EventSeries{T}, val, t1, t2) where {T} = cumtime(select(es,t1,t2), val)
+cumtime(es::EventSeries{T}, fun, t1, t2) where {T} = cumtime(select(es,t1,t2), fun)
 
 
 function fuse(;kwargs...)
@@ -267,3 +267,36 @@ function Base.filter(f, y::EventSeries)
 end
 
 segments(y::EventSeries) = (Segment(e1.value, e1.timestamp, e2.timestamp) for (e1, e2) in neighbors(y))
+
+
+function next(ts::EventSeries, time; include_boundary=false)
+    t0, t1 =  first(ts.timestamps), last(ts.timestamps)
+    if time > t1
+        return nothing
+    elseif time == t1
+        return include_boundary ? ts[end] : nothing
+    else
+        idx = searchsortedfirst(ts.timestamps, time)
+        idx = !include_boundary && in(time, ts.timestamps) ? idx+1 : idx
+        ts[idx]
+    end
+
+end
+
+
+function previous(ts::EventSeries, time; include_boundary=false)
+    t0, t1 =  first(ts.timestamps), last(ts.timestamps)
+    if time < t0
+        return nothing
+    elseif time == t0
+        return include_boundary ? ts[1] : nothing
+    else
+        idx = searchsortedfirst(ts.timestamps, time)
+        if in(time, ts.timestamps) && include_boundary
+            return ts[idx]
+        else
+            return ts[idx-1]
+        end
+    end
+
+end
